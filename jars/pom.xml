@@ -87,11 +87,13 @@
         </dependency>
         -->
         <!-- https://mvnrepository.com/artifact/org.kohsuke/github-api -->
+        <!--
         <dependency>
             <groupId>org.kohsuke</groupId>
             <artifactId>github-api</artifactId>
             <version>1.76</version>
         </dependency>
+        -->
 
         <dependency>
             <groupId>com.sparkjava</groupId>
@@ -99,6 +101,18 @@
             <version>2.5</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.7</version>
+        </dependency>
+
+
+        <dependency>
+          <groupId>org.eclipse.mylyn.github</groupId>
+          <artifactId>org.eclipse.egit.github.core</artifactId>
+          <version>2.1.5</version>
+        </dependency>
 
     </dependencies>
 

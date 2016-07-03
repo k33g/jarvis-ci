@@ -1,3 +1,3 @@
 #!/bin/bash
-golo golo --classpath jars/*.jar --files main.golo
+golo golo --classpath jars/*.jar --files config.golo main.golo
 

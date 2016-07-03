@@ -1,9 +1,5 @@
-module gh3
+module jarvisci
 
-
-import org.kohsuke.github.GitUser
-import org.kohsuke.github.GHRepository
-import org.kohsuke.github.GitHub
 
 import java.text.MessageFormat
 
@@ -12,6 +8,11 @@ import java.text.MessageFormat
 
 import gololang.Errors
 import spark.Spark
+
+import org.eclipse.egit.github.core.client.GitHubClient
+import org.eclipse.egit.github.core.client.GitHubRequest
+
+import config
 
 
 function getGitHubEvent = |request| -> request: headers("X-GitHub-Event")
@@ -43,7 +44,7 @@ function main = |args| {
 
   let env = gololang.EvaluationEnvironment()
 
-  setPort(8888)
+  setPort(config(): http_port())
 
   spark.Spark.get("/", |request, response| {
     response: type("application/json")
@@ -62,7 +63,25 @@ function main = |args| {
     println("GitHub Event: " + eventName)
     let data = JSON.parse(request: body())
 
+    #textToFile(JSON.stringify(data), "foo3.json")
+
+    let action = data: get("action")
+    let after = data: get("after")
+    let owner = data: get("repository"): get("owner"): get("name")
+    let repoName = data: get("repository"): get("name")
+    let statuses_url = "/repos/" + owner + "/" + repoName + "/statuses/" + after
+
+
+    let gitHubClient = GitHubClient(config(): host())
+    gitHubClient: setOAuth2Token(config(): token())
+
+    if eventName: equals("pull_request") {
+
+    }
+
     if eventName: equals("push") {
+
+
       let repo = getRepository(data)
       RT: tmp_dir("clones/" + uuid() + "-" + repo: branchName())
       
@@ -70,10 +89,46 @@ function main = |args| {
 
         if RT: checkout(repo: branchName()):equals(0) {
 
+
+          try {
+            gitHubClient: post(statuses_url, 
+              map[
+                ["state", "pending"],
+                ["description", "Jarvis-CI is checking..."],
+                ["context", "jarvis-ci"]
+              ], 
+              java.lang.Object.class
+            )
+          } catch (e) {
+            e: printStackTrace()
+          }   
+
           let runCiGolo = |content| {
             let results = fun("do", env: anonymousModule(content))(RT)
+
             println(JSON.stringify(results))
+
+            #textToFile(JSON.stringify(data), "foo2.json")
+
             # here, something to do with status
+            # to do: test validity of results
+
+            println(statuses_url)
+
+            try {
+              gitHubClient: post(statuses_url, 
+                map[
+                  ["state", results?: status() orIfNull "pending"],
+                  ["description", results?: description() orIfNull "status are not defined"],
+                  ["context", results?: context() orIfNull "jarvis-ci"]
+                ], 
+                java.lang.Object.class
+              )
+            } catch (e) {
+              e: printStackTrace()
+            }   
+
+
           }
 
           let displayError = |error| -> println(error)

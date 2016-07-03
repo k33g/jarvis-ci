@@ -4,7 +4,7 @@ CI server written in **[Golo](http://golo-lang.org/)**
 ## Installation
 
 - `git clone` this repository
-- run: `golo golo --classpath jars/*.jar --files main.golo` or `./jarvis-ci.sh`
+- run: `golo golo --classpath jars/*.jar --files config.golo main.golo` or `./jarvis-ci.sh`
 
 ### If you run Jarvis-CI at :home:
 
@@ -28,13 +28,30 @@ CI server written in **[Golo](http://golo-lang.org/)**
     - set events to "Send me everything"
     - click on `Add webhook`
 
+## Personal access tokens
+
+- go to your :octocat: settings
+- click on "Personal access tokens"
+- generate a token and copy it to the `config.golo`
+
+```golo
+module config
+
+function config = {
+  return DynamicObject()
+    : token("your_token_here")
+    : http_port(8888)
+    : host("api.github.com")
+}
+```
+
 ## Define a golo pipeline
 
 - add a `ci.golo` file with this content
   ```golo
-	## ci.golo ...
+	## ci.golo ... ... 
 	function do = |context| {
-	  println("=== Golo CI ===")
+	  println("=== Jarvis-CI === [wip-again]")
 	  let path = currentDir() + "/" + context: tmp_dir()
 	  println(path)
 	  # Stage: initialize
@@ -45,20 +62,22 @@ CI server written in **[Golo](http://golo-lang.org/)**
 	    println("2- tests")
 	    if context: sh("./npm_run.sh {0} {1}", path, "test"):  equals(0) {
 	      println("tests OK")
-	      return DynamicObject(): initialize("ok"): tests("ok")
+	      return DynamicObject(): initialize("ok"): tests("ok"): status("success"): description("you are the best!"): context("jarvis-ci")
 	    } else {
 	      println("tests KO")
-	      return DynamicObject(): initialize("ok"): tests("ko")
+	      return DynamicObject(): initialize("ok"): tests("ko"): status("failure"): description("ouch!"): context("jarvis-ci")
 	    }
 	  } else {
 	    println("packages installation KO")
-	    return DynamicObject(): initialize("ko"): tests("ko")
+	    return DynamicObject(): initialize("ko"): tests("ko"): status("failure"): description("ouch!"): context("jarvis-ci")
 	  }
 
 	}
   ```
 
 Now, each time you commit on a branch, the remote repository is cloned, and the branch is checked out, then, the `ci.golo` file of the current branch is executed.
+
+**Remark**: If you don't precise **status**, It won't be checking on the PR
 
 ![octocat](jarvis-ci-000.gif)
 
@@ -68,6 +87,12 @@ Currently, **Jarvis-CI** works only with simple Node.js projects (It's a POC)
 ## TODO
 
 - configuration file (http port, etc...)
-- :octocat: status for PR
 - Web UI
 - ...
+
+## Status
+
+- Go to the settings of a user and go to "Personal access tokens"
+
+
+
