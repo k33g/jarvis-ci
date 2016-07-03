@@ -60,6 +60,9 @@ CI server written in golo
 
 Now, each time you commit on a branch, the remote repository is cloned, and the branch is checked out, then, the `ci.golo` file of the current branch is executed.
 
+![octocat](jarvis-ci-000.gif)
+
+
 Currently, **Jarvis-CI** works only with simple Node.js projects (It's a POC)
 
 ## TODO
