@@ -27,6 +27,9 @@ CI server written in golo
     - set content-type to `application/json`
     - set events to "Send me everything"
     - click on `Add webhook`
+
+## Define a golo pipeline
+
 - add a `ci.golo` file with this content
   ```golo
 	## ci.golo ...
