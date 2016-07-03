@@ -62,14 +62,17 @@ function config = {
 	    println("2- tests")
 	    if context: sh("./npm_run.sh {0} {1}", path, "test"):  equals(0) {
 	      println("tests OK")
-	      return DynamicObject(): initialize("ok"): tests("ok"): status("success"): description("you are the best!"): context("jarvis-ci")
+	      return DynamicObject(): initialize("ok"): tests("ok")
+	              : status("success"): description("you are the best!"): context("jarvis-ci")
 	    } else {
 	      println("tests KO")
-	      return DynamicObject(): initialize("ok"): tests("ko"): status("failure"): description("ouch!"): context("jarvis-ci")
+	      return DynamicObject(): initialize("ok"): tests("ko")
+	              : status("failure"): description("ouch!"): context("jarvis-ci")
 	    }
 	  } else {
 	    println("packages installation KO")
-	    return DynamicObject(): initialize("ko"): tests("ko"): status("failure"): description("ouch!"): context("jarvis-ci")
+	    return DynamicObject(): initialize("ko"): tests("ko")
+	            : status("failure"): description("ouch!"): context("jarvis-ci")
 	  }
 
 	}
@@ -80,6 +83,8 @@ Now, each time you commit on a branch, the remote repository is cloned, and the 
 **Remark**: If you don't precise **status**, It won't be checking on the PR
 
 ![octocat](jarvis-ci-000.gif)
+
+![octocat](check.png)
 
 
 Currently, **Jarvis-CI** works only with simple Node.js projects (It's a POC)
