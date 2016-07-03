@@ -1,5 +1,5 @@
 # jarvis-ci
-CI server written in golo
+CI server written in **[Golo](http://golo-lang.org/)**
 
 ## Installation
 
