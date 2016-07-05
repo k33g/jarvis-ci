@@ -1,10 +1,6 @@
 module jarvisci
 
-
 import java.text.MessageFormat
-
-# https://mvnrepository.com/artifact/org.kohsuke/github-api/1.76
-# http://central.maven.org/maven2/org/kohsuke/github-api/1.76/
 
 import gololang.Errors
 import spark.Spark
@@ -27,6 +23,27 @@ function getRepository = |data| ->
     : ref(data: get("ref"))
     : branchName(|this| -> this: ref(): split("/"): asList(): last())
 
+function getGitHubClient = {
+  var gitHubClient = null
+  if config(): enterprise() {
+    gitHubClient = GitHubClient(config(): host(), config(): port(), config(): scheme())
+  } else {
+    gitHubClient = GitHubClient(config(): host())
+  }
+  gitHubClient: setOAuth2Token(config(): token())
+  return gitHubClient
+}
+
+function console = {
+  return DynamicObject()
+    : log(|this, txt, args...| -> println(MessageFormat.format(txt, args)))
+}
+
+
+----
+TODO: 
+- use EvaluationEnvironment to load config
+----
 function main = |args| {
 
   let RT = DynamicObject()
@@ -60,10 +77,10 @@ function main = |args| {
   spark.Spark.post("/golo_ci", |request, response| {
     response: type("application/json")
     let eventName = getGitHubEvent(request)
-    println("GitHub Event: " + eventName)
-    let data = JSON.parse(request: body())
 
-    #textToFile(JSON.stringify(data), "foo3.json")
+    console(): log("GitHub Event: {0}", eventName)
+
+    let data = JSON.parse(request: body())
 
     let action = data: get("action")
     let after = data: get("after")
@@ -71,26 +88,46 @@ function main = |args| {
     let repoName = data: get("repository"): get("name")
     let statuses_url = "/repos/" + owner + "/" + repoName + "/statuses/" + after
 
+    let gitHubClient = getGitHubClient()
 
-    let gitHubClient = GitHubClient(config(): host())
-    gitHubClient: setOAuth2Token(config(): token())
-
-    if eventName: equals("pull_request") {
-
-    }
+    if eventName: equals("pull_request") { }
 
     if eventName: equals("push") {
 
-
       let repo = getRepository(data)
-      RT: tmp_dir("clones/" + uuid() + "-" + repo: branchName())
+      RT: tmp_dir("clones/" + uuid() + "-" +repo: name() + "-" + repo: branchName())
       
       if RT: clone(repo): equals(0) {
 
         if RT: checkout(repo: branchName()):equals(0) {
 
+          let displayError = |error| -> println(error)
+          let doNothing = |value| -> println(value)
 
-          try {
+          # building closure.
+          let runCiGolo = |content| {
+
+            # Initialize and build
+            let results = fun("do", env: anonymousModule(content))(RT)
+            console(): log("results: {0}", JSON.stringify(results))
+
+            console(): log("statuses_url: {0}", statuses_url)
+            # change status depending of build result
+            trying({
+              gitHubClient: post(statuses_url, 
+                map[
+                  ["state", results?: status() orIfNull "pending"],
+                  ["description", results?: description() orIfNull "Warning: status are not defined"],
+                  ["context", results?: context() orIfNull "jarvis-ci"]
+                ], 
+                java.lang.Object.class
+              )
+            }): either(doNothing  ,displayError)   
+          } # end of runCiGolo
+
+
+          # change status at the begining of checking
+          trying({
             gitHubClient: post(statuses_url, 
               map[
                 ["state", "pending"],
@@ -99,50 +136,19 @@ function main = |args| {
               ], 
               java.lang.Object.class
             )
-          } catch (e) {
-            e: printStackTrace()
-          }   
-
-          let runCiGolo = |content| {
-            let results = fun("do", env: anonymousModule(content))(RT)
-
-            println(JSON.stringify(results))
-
-            #textToFile(JSON.stringify(data), "foo2.json")
-
-            # here, something to do with status
-            # to do: test validity of results
-
-            println(statuses_url)
-
-            try {
-              gitHubClient: post(statuses_url, 
-                map[
-                  ["state", results?: status() orIfNull "pending"],
-                  ["description", results?: description() orIfNull "status are not defined"],
-                  ["context", results?: context() orIfNull "jarvis-ci"]
-                ], 
-                java.lang.Object.class
-              )
-            } catch (e) {
-              e: printStackTrace()
-            }   
-
-
-          }
-
-          let displayError = |error| -> println(error)
-
+          }): either(doNothing  ,displayError)
+          
           # Try loading ci.golo from the current branch
+          # and run ci if ok
           trying({
             return fileToText(RT: tmp_dir()+"/ci.golo", "UTF-8")
           })
           : either(runCiGolo ,displayError)
 
-        }
-      }
+        } # end of checkout
+      } # end of clone
 
-    }
+    } # end of push
     return JSON.stringify(DynamicObject(): message("Hello from Golo-CI"))
   })
  

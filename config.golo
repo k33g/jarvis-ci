@@ -2,7 +2,12 @@ module config
 
 function config = {
   return DynamicObject()
-    : token("your_token_here")
+    : token("56fc42a6646aebe8af59e2bc980e8744bec5579d")
     : http_port(8888)
-    : host("api.github.com")
+    : enterprise(true)
+    : host("ghe.k33g")
+    : scheme("http")
+    : port(-1)
 }
+
+# GitHub.com host("api.github.com")
