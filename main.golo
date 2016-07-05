@@ -34,11 +34,9 @@ function getGitHubClient = {
   return gitHubClient
 }
 
-function console = {
-  return DynamicObject()
+function console -> 
+  DynamicObject()
     : log(|this, txt, args...| -> println(MessageFormat.format(txt, args)))
-}
-
 
 ----
 TODO: 
