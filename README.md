@@ -1,5 +1,7 @@
-# jarvis-ci
+# Jarvis-ci
 CI server written in **[Golo](http://golo-lang.org/)**
+
+> This is a POC
 
 ## Installation
 
@@ -62,35 +64,34 @@ function config = {
 ## Define a golo pipeline
 
 - add a `ci.golo` file with this content
-  ```golo
-	## ci.golo ... ... 
-	function check = |context| {
-	  println("=== Jarvis-CI === [wip-again]")
-	  let path = currentDir() + "/" + context: tmp_dir()
-	  println(path)
-	  # Stage: initialize
-	  println("1- initialize")
-	  if context: sh("./npm_install.sh {0}", path): equals(0) {
-	    println("packages installation OK")
-	    # Stage: tests
-	    println("2- tests")
-	    if context: sh("./npm_run.sh {0} {1}", path, "test"):  equals(0) {
-	      println("tests OK")
-	      return DynamicObject(): initialize("ok"): tests("ok")
-	              : status("success"): description("you are the best!"): context("jarvis-ci")
-	    } else {
-	      println("tests KO")
-	      return DynamicObject(): initialize("ok"): tests("ko")
-	              : status("failure"): description("ouch!"): context("jarvis-ci")
-	    }
-	  } else {
-	    println("packages installation KO")
-	    return DynamicObject(): initialize("ko"): tests("ko")
-	            : status("failure"): description("ouch!"): context("jarvis-ci")
-	  }
+```golo
+## ci.golo 
+function check = |context| {
+  context: info("{0}", "=== Jarvis-CI ===")
+  context: info("Repository {0}", context: repo(): name())
+  context: info("Current branch {0}", context: repo(): branchName())
+  let path = currentDir() + "/" + context: tmp_dir()
+  context: info("path: {0}", path)
+  # Stage: initialize
+  context: info("{0}", "1- initialize")
+  if context: sh("./npm_install.sh {0}", path): equals(0) {
+    context: success("{0}", "packages installation OK")
+    # Stage: tests
+    context: info("{0}", "2- tests")
+    if context: sh("./npm_run.sh {0} {1}", path, "test"):  equals(0) {
+      context: success("{0}", "tests OK")
+      return DynamicObject(): initialize("ok"): tests("ok"): status("success"): description("you are the best!"): context("jarvis-ci")
+    } else {
+      context: warning("{0}", "tests KO")
+      return DynamicObject(): initialize("ok"): tests("ko"): status("failure"): description("ouch!"): context("jarvis-ci")
+    }
+  } else {
+    context: fail("{0}", "packages installation KO")
+    return DynamicObject(): initialize("ko"): tests("ko"): status("failure"): description("ouch!"): context("jarvis-ci")
+  }
 
-	}
-  ```
+}
+```
 
 Now, each time you commit on a branch, the remote repository is cloned, and the branch is checked out, then, the `ci.golo` file of the current branch is executed.
 
@@ -103,15 +104,15 @@ Now, each time you commit on a branch, the remote repository is cloned, and the 
 
 Currently, **Jarvis-CI** works only with simple Node.js projects (It's a POC)
 
+## Build something else then Node.js project
+
+**Jarvis-CI** is only a messenger, so you only have to create necessary `.sh` files and write your own `ci.golo` integration script.
+
+
 ## TODO
 
-- configuration file (http port, etc...)
 - Web UI
 - ...
-
-## Status
-
-- Go to the settings of a user and go to "Personal access tokens"
 
 
 
