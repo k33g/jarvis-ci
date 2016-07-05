@@ -81,7 +81,7 @@ function main = |args| {
     response: type("application/json")
     let eventName = getGitHubEvent(request)
 
-    console(): log("GitHub Event: {0}", eventName)
+    #console(): log("GitHub Event: {0}", eventName)
 
     let data = JSON.parse(request: body())
 
@@ -104,28 +104,57 @@ function main = |args| {
 
         if executorHelper: checkout(repo: branchName()):equals(0) {
 
-          let displayError = |error| -> console(): log("Error: {0}", error)
-          let doNothing = |value| -> console(): log("{0}", trying(-> Some(value)): orElseGet(->"I'm fine 😃"))
+          let displayError = |sourceError| -> 
+                                |error| -> 
+                                  console(): log(
+                                    "💔  Error from {0}: {1}", 
+                                    sourceError orIfNull "🌏", 
+                                    error orIfNull "😵"
+                                  )
+          
+          let doNothing = |value| -> console(): log("{0}", value orIfNull "I'm fine 😃")
 
-          # building closure.
-          let runCiGolo = |content| {
+          # Building closure.
+          let runCiGolo = |goloSourceCode| {
 
             # Initialize and build
-            let results = fun("do", env: anonymousModule(content))(executorHelper)
-            console(): log("results: {0}", JSON.stringify(results))
-
-            console(): log("statuses_url: {0}", statuses_url)
-            # change status depending of build result
             trying({
-              gitHubClient: post(statuses_url, 
-                map[
-                  ["state", results?: status() orIfNull "pending"],
-                  ["description", results?: description() orIfNull "Warning: status are not defined"],
-                  ["context", results?: context() orIfNull "jarvis-ci"]
-                ], 
-                java.lang.Object.class
-              )
-            }): either(doNothing  ,displayError)   
+
+              # TODO: run as a worker or a thread and kill it if to long
+
+              # Run `check` function in `ci.golo`
+              let results = fun(
+                "check", 
+                env: anonymousModule(goloSourceCode)
+              )(executorHelper)
+              
+              # TODO check result properties
+              # TODO display messages with emoji
+
+              # Check and display results
+              console(): log("results: {0}", JSON.stringify(results))
+
+              console(): log("statuses_url: {0}", statuses_url)
+              
+              # Change status depending of build result
+              trying({
+                gitHubClient: post(statuses_url, 
+                  map[
+                    ["state", results?: status() orIfNull "pending"],
+                    ["description", results?: description() orIfNull "Warning: status are not defined"],
+                    ["context", results?: context() orIfNull "jarvis-ci"]
+                  ], 
+                  java.lang.Object.class
+                )
+
+                return "🐼  GitHub status are passed"
+              }): either(doNothing  ,displayError("[status]")) 
+
+
+              return "🐯  check() from ci.golo was executed"
+            }): either(doNothing  ,displayError("[check()]"))
+
+
           } # end of runCiGolo
 
 
@@ -139,7 +168,8 @@ function main = |args| {
               ], 
               java.lang.Object.class
             )
-          }): either(doNothing  ,displayError)
+            return "🍄  GitHub pending status are passed"
+          }): either(doNothing  ,displayError("[status:pending]"))
           
           # Try loading ci.golo from the current branch
           # and run ci if ok

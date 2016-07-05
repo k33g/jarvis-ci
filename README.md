@@ -64,7 +64,7 @@ function config = {
 - add a `ci.golo` file with this content
   ```golo
 	## ci.golo ... ... 
-	function do = |context| {
+	function check = |context| {
 	  println("=== Jarvis-CI === [wip-again]")
 	  let path = currentDir() + "/" + context: tmp_dir()
 	  println(path)
