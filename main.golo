@@ -38,13 +38,9 @@ function console = ->
   DynamicObject()
     : log(|this, txt, args...| -> println(MessageFormat.format(txt, args)))
 
-----
-TODO: 
-- use EvaluationEnvironment to load config
-----
-function main = |args| {
 
-  let RT = DynamicObject()
+function getExecuteorHelper = ->
+  DynamicObject()
     : shell(|this, cmd| {
         let p = Runtime.getRuntime(): exec(cmd)
         return p: waitFor()
@@ -56,6 +52,15 @@ function main = |args| {
     : tmp_dir(null)
     : checkout(|this, branchName| -> this: shell("./checkout.sh " + this: tmp_dir() + " " + branchName))
     : clone(|this, repo| -> this: shell("git clone " + repo: url() + ".git " + this: tmp_dir()))
+
+----
+TODO: 
+- use EvaluationEnvironment to load config
+- try to see how I can test my golo project
+----
+function main = |args| {
+
+  let executorHelper = getExecuteorHelper()
 
   let env = gololang.EvaluationEnvironment()
 
@@ -93,20 +98,20 @@ function main = |args| {
     if eventName: equals("push") {
 
       let repo = getRepository(data)
-      RT: tmp_dir("clones/" + uuid() + "-" +repo: name() + "-" + repo: branchName())
+      executorHelper: tmp_dir("clones/" + uuid() + "-" +repo: name() + "-" + repo: branchName())
       
-      if RT: clone(repo): equals(0) {
+      if executorHelper: clone(repo): equals(0) {
 
-        if RT: checkout(repo: branchName()):equals(0) {
+        if executorHelper: checkout(repo: branchName()):equals(0) {
 
-          let displayError = |error| -> println(error)
-          let doNothing = |value| -> println(value)
+          let displayError = |error| -> console(): log("Error: {0}", error)
+          let doNothing = |value| -> console(): log("{0}", trying(-> Some(value)): orElseGet(->"I'm fine 😃"))
 
           # building closure.
           let runCiGolo = |content| {
 
             # Initialize and build
-            let results = fun("do", env: anonymousModule(content))(RT)
+            let results = fun("do", env: anonymousModule(content))(executorHelper)
             console(): log("results: {0}", JSON.stringify(results))
 
             console(): log("statuses_url: {0}", statuses_url)
@@ -139,7 +144,7 @@ function main = |args| {
           # Try loading ci.golo from the current branch
           # and run ci if ok
           trying({
-            return fileToText(RT: tmp_dir()+"/ci.golo", "UTF-8")
+            return fileToText(executorHelper: tmp_dir()+"/ci.golo", "UTF-8")
           })
           : either(runCiGolo ,displayError)
 
