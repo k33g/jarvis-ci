@@ -113,6 +113,3 @@ Currently, **Jarvis-CI** works only with simple Node.js projects (It's a POC)
 
 - Web UI
 - ...
-
-
-
